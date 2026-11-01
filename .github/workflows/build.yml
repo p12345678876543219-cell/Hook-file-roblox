@@ -26,4 +26,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: RobloxProfileMenu-Dylib
-          path: obj/*.dylib
+          path: |
+            obj/*.dylib
+            .theos/obj/*.dylib
+            .theos/obj/debug/*.dylib
