@@ -7,7 +7,7 @@ static UIView *menuView = nil;
 static UILabel *infoLabel = nil;
 static BOOL isMenuOpen = NO;
 
-// Khai báo trước
+// Khai báo trước các hàm
 void toggleMenu(void);
 void updateProfileInfo(void);
 
@@ -117,7 +117,8 @@ void setupFloatingMenu(void) {
     [rootView addSubview:menuView];
 }
 
-%ctor {
+// Hàm khởi tạo chuẩn C chạy trực tiếp khi dylib được nạp vào game
+__attribute__((constructor)) static void initRobloxMenu() {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         setupFloatingMenu();
     });
