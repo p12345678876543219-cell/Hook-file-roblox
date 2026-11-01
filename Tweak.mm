@@ -8,26 +8,44 @@ static UIView *menuView = nil;
 static UILabel *infoLabel = nil;
 static BOOL isMenuOpen = NO;
 
-// Hàm lấy thông tin Roblox (Giả lập qua cơ chế gọi API/Runtime của Roblox App)
-// Trong thực tế, các executor như Delta cung cấp Roblox Lua API hoặc ta hook trực tiếp vào LocalPlayer của Roblox.
-NSString *getRobloxUsername() {
-    // Thử truy xuất qua lớp Roblox Player nếu game đã load
-    // Hoặc trả về chuỗi mẫu nếu chưa đồng bộ kịp
+// Khai báo trước các hàm xử lý
+void toggleMenu(void);
+void updateProfileInfo(void);
+
+// Xử lý kéo thả và sự kiện nút bấm
+@interface ButtonHandler : NSObject
++ (void)btnTapped;
++ (void)panDetected:(UIPanGestureRecognizer *)gesture;
+@end
+
+@implementation ButtonHandler
++ (void)btnTapped {
+    toggleMenu();
+}
++ (void)panDetected:(UIPanGestureRecognizer *)gesture {
+    UIView *btn = gesture.view;
+    CGPoint translation = [gesture translationInView:btn.superview];
+    CGPoint newCenter = CGPointMake(btn.center.x + translation.x, btn.center.y + translation.y);
+    btn.center = newCenter;
+    [gesture setTranslation:CGPointZero inView:btn.superview];
+}
+@end
+
+// Hàm lấy thông tin (Giả lập qua cơ chế Roblox Client)
+NSString *getRobloxUsername(void) {
     return @"Player_Roblox123"; 
 }
 
-NSString *getAccountAgeAndCreation() {
-    // Tuổi thọ và ngày tạo (Tính theo dữ liệu LocalPlayer của Roblox)
+NSString *getAccountAgeAndCreation(void) {
     return @"Ngày tạo: 15/05/2023\nTuổi thọ: 3 năm 5 tháng";
 }
 
-NSString *getCurrentGameName() {
-    // Lấy tên Place/Game hiện tại đang chạy qua UIViewController hiện tại hoặc DataModel
+NSString *getCurrentGameName(void) {
     return @"Blox Fruits / Sea 2";
 }
 
 // Hàm cập nhật nội dung thông tin lên Menu
-void updateProfileInfo() {
+void updateProfileInfo(void) {
     if (!infoLabel) return;
     
     NSString *name = getRobloxUsername();
@@ -38,7 +56,7 @@ void updateProfileInfo() {
 }
 
 // Xử lý sự kiện bấm nút mở/đóng Menu
-void toggleMenu() {
+void toggleMenu(void) {
     isMenuOpen = !isMenuOpen;
     menuView.hidden = !isMenuOpen;
     if (isMenuOpen) {
@@ -48,7 +66,7 @@ void toggleMenu() {
 }
 
 // Khởi tạo giao diện Menu nổi
-void setupFloatingMenu() {
+void setupFloatingMenu(void) {
     if (overlayWindow) return;
     
     // Tạo UIWindow riêng nằm đè lên game
@@ -63,7 +81,7 @@ void setupFloatingMenu() {
     overlayWindow.backgroundColor = [UIColor clearColor];
     overlayWindow.hidden = NO;
     
-    // View chứa toàn bộ phần tử giao diện để nhận diện chạm (hitTest)
+    // View chứa phần tử giao diện
     UIView *rootView = [[UIView alloc] initWithFrame:[UIScreen mainScreen].bounds];
     rootView.userInteractionEnabled = NO;
     overlayWindow.rootViewController = [UIViewController new];
@@ -78,10 +96,11 @@ void setupFloatingMenu() {
     floatingBtn.layer.borderWidth = 1.5;
     floatingBtn.layer.borderColor = [UIColor cyanColor].CGColor;
     floatingBtn.userInteractionEnabled = YES;
-    [floatingBtn addTarget:nil action:@selector(floatingBtnTapped) forControlEvents:UIControlEventTouchUpInside];
     
-    // Thêm cử chỉ kéo thả (Pan Gesture) cho nút nổi để không che nút bấm trong game
-    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:nil action:@selector(handlePan:)];
+    [floatingBtn addTarget:[ButtonHandler class] action:@selector(btnTapped) forControlEvents:UIControlEventTouchUpInside];
+    
+    // Thêm cử chỉ kéo thả (Pan Gesture) cho nút nổi
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:[ButtonHandler class] action:@selector(panDetected:)];
     [floatingBtn addGestureRecognizer:pan];
     
     [rootView addSubview:floatingBtn];
@@ -106,35 +125,14 @@ void setupFloatingMenu() {
     // Label hiển thị thông tin chi tiết
     infoLabel = [[UILabel alloc] initWithFrame:CGRectMake(15, 50, 230, 170)];
     infoLabel.textColor = [UIColor lightGrayColor];
-    infoLabel.font = [CFFontWithNameOrSystem(nil, 13) ?: [UIFont systemFontOfSize:13] get]; // Fallback system font
+    infoLabel.font = [UIFont systemFontOfSize:13];
     infoLabel.numberOfLines = 0;
     [menuView addSubview:infoLabel];
     
     [rootView addSubview:menuView];
 }
 
-// Helper tránh lỗi font
-UIFont* getSystemFont(CGFloat size) {
-    return [UIFont systemFontOfSize:size];
-}
-
-// Xử lý kéo thả nút
-@interface ButtonHandler : NSObject
-@end
-@implementation ButtonHandler
-+ (void)btnTapped {
-    toggleMenu();
-}
-+๋ว (void)panDetected:(UIPanGestureRecognizer *)gesture {
-    UIView *btn = gesture.view;
-    CGPoint translation = [gesture translationInView:btn.superview];
-    CGPoint newCenter = CGPointMake(btn.center.x + translation.x, btn.center.y + translation.y);
-    btn.center = newCenter;
-    [gsetTranslation:CGPointZero inView:btn.superview];
-}
-@end
-
-// Hook vào hàm khởi chạy ứng dụng Roblox để tiêm Menu vào
+// Hook vào chu trình chạy để khởi tạo menu sau khi game load
 %ctor {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         setupFloatingMenu();
