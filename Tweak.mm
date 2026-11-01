@@ -1,18 +1,16 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
-// Khai báo biến giao diện toàn cục
 static UIWindow *overlayWindow = nil;
 static UIButton *floatingBtn = nil;
 static UIView *menuView = nil;
 static UILabel *infoLabel = nil;
 static BOOL isMenuOpen = NO;
 
-// Khai báo trước các hàm xử lý
+// Khai báo trước
 void toggleMenu(void);
 void updateProfileInfo(void);
 
-// Xử lý kéo thả và sự kiện nút bấm
 @interface ButtonHandler : NSObject
 + (void)btnTapped;
 + (void)panDetected:(UIPanGestureRecognizer *)gesture;
@@ -31,31 +29,26 @@ void updateProfileInfo(void);
 }
 @end
 
-// Hàm lấy thông tin (Giả lập qua cơ chế Roblox Client)
-NSString *getRobloxUsername(void) {
-    return @"Player_Roblox123"; 
+static NSString *getRobloxUsername(void) {
+    return @"Player_Roblox123";
 }
 
-NSString *getAccountAgeAndCreation(void) {
+static NSString *getAccountAgeAndCreation(void) {
     return @"Ngày tạo: 15/05/2023\nTuổi thọ: 3 năm 5 tháng";
 }
 
-NSString *getCurrentGameName(void) {
+static NSString *getCurrentGameName(void) {
     return @"Blox Fruits / Sea 2";
 }
 
-// Hàm cập nhật nội dung thông tin lên Menu
 void updateProfileInfo(void) {
     if (!infoLabel) return;
-    
     NSString *name = getRobloxUsername();
     NSString *ageInfo = getAccountAgeAndCreation();
     NSString *game = getCurrentGameName();
-    
     infoLabel.text = [NSString stringWithFormat:@"👤 Tên: %@\n\n📅 %@\n\n🎮 Đang chơi:\n%@", name, ageInfo, game];
 }
 
-// Xử lý sự kiện bấm nút mở/đóng Menu
 void toggleMenu(void) {
     isMenuOpen = !isMenuOpen;
     menuView.hidden = !isMenuOpen;
@@ -65,11 +58,9 @@ void toggleMenu(void) {
     }
 }
 
-// Khởi tạo giao diện Menu nổi
 void setupFloatingMenu(void) {
     if (overlayWindow) return;
     
-    // Tạo UIWindow riêng nằm đè lên game
     UIWindowScene *scene = (UIWindowScene *)[[UIApplication sharedApplication].connectedScenes anyObject];
     if (scene) {
         overlayWindow = [[UIWindow alloc] initWithWindowScene:scene];
@@ -81,13 +72,11 @@ void setupFloatingMenu(void) {
     overlayWindow.backgroundColor = [UIColor clearColor];
     overlayWindow.hidden = NO;
     
-    // View chứa phần tử giao diện
     UIView *rootView = [[UIView alloc] initWithFrame:[UIScreen mainScreen].bounds];
     rootView.userInteractionEnabled = NO;
     overlayWindow.rootViewController = [UIViewController new];
     [overlayWindow.rootViewController.view addSubview:rootView];
 
-    // 1. Nút Bật/Tắt Menu (Floating Button) nổi trên màn hình
     floatingBtn = [UIButton buttonWithType:UIButtonTypeCustom];
     floatingBtn.frame = CGRectMake(20, 100, 50, 50);
     floatingBtn.backgroundColor = [UIColor colorWithRed:0.1 green:0.1 blue:0.1 alpha:0.8];
@@ -99,13 +88,11 @@ void setupFloatingMenu(void) {
     
     [floatingBtn addTarget:[ButtonHandler class] action:@selector(btnTapped) forControlEvents:UIControlEventTouchUpInside];
     
-    // Thêm cử chỉ kéo thả (Pan Gesture) cho nút nổi
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:[ButtonHandler class] action:@selector(panDetected:)];
     [floatingBtn addGestureRecognizer:pan];
     
     [rootView addSubview:floatingBtn];
 
-    // 2. Bảng Menu chính
     menuView = [[UIView alloc] initWithFrame:CGRectMake(80, 100, 260, 240)];
     menuView.backgroundColor = [UIColor colorWithRed:0.08 green:0.08 blue:0.12 alpha:0.95];
     menuView.layer.cornerRadius = 14;
@@ -114,7 +101,6 @@ void setupFloatingMenu(void) {
     menuView.hidden = YES;
     menuView.userInteractionEnabled = YES;
     
-    // Tiêu đề Menu
     UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(15, 10, 230, 30)];
     titleLabel.text = @"🚀 Roblox Profile Menu";
     titleLabel.textColor = [UIColor whiteColor];
@@ -122,7 +108,6 @@ void setupFloatingMenu(void) {
     titleLabel.textAlignment = NSTextAlignmentCenter;
     [menuView addSubview:titleLabel];
     
-    // Label hiển thị thông tin chi tiết
     infoLabel = [[UILabel alloc] initWithFrame:CGRectMake(15, 50, 230, 170)];
     infoLabel.textColor = [UIColor lightGrayColor];
     infoLabel.font = [UIFont systemFontOfSize:13];
@@ -132,7 +117,6 @@ void setupFloatingMenu(void) {
     [rootView addSubview:menuView];
 }
 
-// Hook vào chu trình chạy để khởi tạo menu sau khi game load
 %ctor {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         setupFloatingMenu();
